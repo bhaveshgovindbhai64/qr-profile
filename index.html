@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile QR Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --ink:#1b2438; --muted:#5b6578; --line:#d9dee7; --paper:#f3f5f9; --panel:#ffffff;
+    --brass:#a97b2c; --focus:#2457c5;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Instrument Sans",system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.5}
+  header{padding:28px 24px 8px;max-width:1100px;margin:0 auto}
+  h1{font-family:Fraunces,Georgia,serif;font-weight:700;font-size:clamp(26px,4vw,38px);margin:0 0 6px;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);max-width:60ch}
+  main{max-width:1100px;margin:0 auto;padding:16px 24px 56px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:32px;align-items:start}
+  @media(max-width:860px){main{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px}
+  fieldset{border:0;padding:0;margin:0 0 22px}
+  legend{font-weight:600;font-size:15px;padding:0;margin-bottom:10px;color:var(--ink)}
+  label{display:block;font-size:13px;color:var(--muted);margin:0 0 4px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+  .field{margin-bottom:12px}
+  input[type=text],input[type=email],input[type=tel],textarea,select{
+    width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px;padding:9px 11px}
+  textarea{resize:vertical;min-height:70px}
+  input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+  input[type=color]{width:100%;height:40px;border:1px solid var(--line);border-radius:6px;padding:3px;background:#fff}
+  input[type=range]{width:100%}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .swatch{width:34px;height:34px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+  .hidden{display:none}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  button.btn{font:inherit;font-weight:600;border-radius:6px;padding:10px 16px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+  button.btn.alt{background:#fff;color:var(--ink)}
+  button.btn:hover{filter:brightness(1.12)}
+  .preview{position:sticky;top:16px}
+  .preview h2{font-size:15px;margin:0 0 10px;font-weight:600}
+
+  /* ---- Profile card ---- */
+  #card{position:relative;width:100%;max-width:380px;margin:0 auto;border-radius:16px;overflow:hidden;color:var(--tc,#fff);
+        min-height:540px;display:flex;flex-direction:column;box-shadow:0 12px 34px rgba(20,30,55,.22)}
+  #card .bg,#card .shade{position:absolute;inset:0}
+  #card .body{position:relative;padding:30px 28px 26px;display:flex;flex-direction:column;flex:1}
+  #cPhoto{width:96px;height:96px;border-radius:50%;background:center/cover no-repeat;border:3px solid currentColor;margin:0 0 16px;flex:none}
+  .photoRow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  button.link{font:inherit;font-size:13px;background:none;border:0;color:var(--focus);cursor:pointer;padding:4px 0;text-decoration:underline}
+  #cName{font-family:Fraunces,Georgia,serif;font-weight:700;font-size:30px;line-height:1.1;margin:0 0 6px;overflow-wrap:anywhere}
+  #cQual{font-weight:500;font-size:15px;margin:0 0 2px;opacity:.95}
+  #cBiz{font-size:15px;margin:0 0 18px;opacity:.85}
+  .rule{height:2px;width:44px;background:currentColor;opacity:.55;margin:0 0 16px;border-radius:2px}
+  .meta{font-size:13.5px;margin:0 0 10px;opacity:.92;overflow-wrap:anywhere}
+  .meta b{display:block;font-weight:600;font-size:12px;opacity:.7;margin-bottom:1px}
+  .qrwrap{margin-top:auto;padding-top:18px;display:flex;align-items:flex-end;gap:14px}
+  .qrtile{background:#fff;border-radius:10px;padding:8px;width:132px;height:132px;flex:none;display:flex}
+  .qrtile canvas{width:100%;height:100%;image-rendering:pixelated}
+  .scan{font-size:13px;opacity:.85;line-height:1.35}
+  #qrWarn{color:#b3261e;font-size:13px;margin-top:8px;min-height:1em}
+</style>
+</head>
+<body>
+<header>
+  <h1>Profile QR generator</h1>
+  <p>Fill in the details, pick a background, and download a profile card. Scanning the QR code offers to save the contact on the phone.</p>
+</header>
+
+<main>
+  <section class="panel" aria-label="Profile details">
+    <fieldset>
+      <legend>Profile details</legend>
+      <div class="field">
+        <label for="photo">Profile photo (optional)</label>
+        <div class="photoRow">
+          <input id="photo" type="file" accept="image/*">
+          <button type="button" class="link hidden" id="photoRemove">Remove photo</button>
+        </div>
+        <div class="hint">A square, front-facing photo works best. It appears on the card only, not inside the QR code.</div>
+      </div>
+      <div class="field"><label for="name">Full name</label>
+        <input id="name" type="text" autocomplete="off" placeholder="e.g. CA Rahul Sharma"></div>
+      <div class="field"><label for="biz">Business name</label>
+        <input id="biz" type="text" autocomplete="off" placeholder="e.g. Sharma &amp; Associates"></div>
+      <div class="row">
+        <div class="field"><label for="qual">Qualification</label>
+          <input id="qual" type="text" autocomplete="off" placeholder="e.g. FCA, DISA, B.Com"></div>
+        <div class="field"><label for="exp">Experience</label>
+          <input id="exp" type="text" autocomplete="off" placeholder="e.g. 12 years in audit &amp; GST"></div>
+      </div>
+      <div class="field"><label for="addr">Address</label>
+        <textarea id="addr" placeholder="Office address"></textarea></div>
+      <div class="row">
+        <div class="field"><label for="phone">Phone (optional)</label>
+          <input id="phone" type="tel" autocomplete="off" placeholder="+91 98XXXXXXXX"></div>
+        <div class="field"><label for="email">Email (optional)</label>
+          <input id="email" type="email" autocomplete="off" placeholder="name@firm.com"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Background</legend>
+      <div class="swatches" id="swatches" aria-label="Background presets"></div>
+      <div class="field"><label for="bgMode">Type</label>
+        <select id="bgMode">
+          <option value="gradient">Gradient</option>
+          <option value="solid">Solid colour</option>
+          <option value="image">Your own image</option>
+        </select></div>
+      <div class="row" id="colorRow">
+        <div class="field"><label for="c1">Colour 1</label><input id="c1" type="color" value="#1b2438"></div>
+        <div class="field" id="c2Wrap"><label for="c2">Colour 2</label><input id="c2" type="color" value="#3b5a9d"></div>
+      </div>
+      <div class="field hidden" id="imgRow">
+        <label for="bgImg">Upload image (stays in your browser)</label>
+        <input id="bgImg" type="file" accept="image/*">
+        <label for="shade" style="margin-top:10px">Darken image so text stays readable</label>
+        <input id="shade" type="range" min="0" max="80" value="45">
+      </div>
+      <div class="field"><label for="tc">Text colour</label>
+        <select id="tc"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button class="btn" id="dlCard" type="button">Download card (PNG)</button>
+      <button class="btn alt" id="dlQr" type="button">Download QR only (PNG)</button>
+    </div>
+    <p class="hint">Everything runs in your browser. Nothing you type is uploaded or stored.</p>
+  </section>
+
+  <aside class="preview" aria-label="Live preview">
+    <h2>Live preview</h2>
+    <div id="card">
+      <div class="bg" id="cBg"></div>
+      <div class="shade" id="cShade"></div>
+      <div class="body">
+        <div id="cPhoto" class="hidden" role="img" aria-label="Profile photo"></div>
+        <h3 id="cName" style="margin:0"></h3>
+        <p id="cQual"></p>
+        <p id="cBiz"></p>
+        <div class="rule"></div>
+        <p class="meta" id="cExpWrap"><b>Experience</b><span id="cExp"></span></p>
+        <p class="meta" id="cAddrWrap"><b>Address</b><span id="cAddr"></span></p>
+        <p class="meta" id="cPhoneWrap"><b>Phone</b><span id="cPhone"></span></p>
+        <p class="meta" id="cEmailWrap"><b>Email</b><span id="cEmail"></span></p>
+        <div class="qrwrap">
+          <div class="qrtile"><canvas id="qr" aria-label="QR code with contact details"></canvas></div>
+          <div class="scan">Scan to save this contact</div>
+        </div>
+      </div>
+    </div>
+    <div id="qrWarn" role="status"></div>
+  </aside>
+</main>
+
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  var presets = [
+    ['#1b2438','#3b5a9d'],['#0f3d3e','#2a7f6f'],['#4a1f3d','#a8456b'],['#2b2b2b','#6b6b6b'],['#f4efe6','#d9c7a3']
+  ];
+  var imgData = null;
+
+  // swatches
+  presets.forEach(function(p){
+    var b = document.createElement('button');
+    b.type='button'; b.className='swatch';
+    b.style.background='linear-gradient(135deg,'+p[0]+','+p[1]+')';
+    b.setAttribute('aria-label','Use gradient '+p[0]+' to '+p[1]);
+    b.onclick=function(){ $('bgMode').value='gradient'; $('c1').value=p[0]; $('c2').value=p[1]; update(); };
+    $('swatches').appendChild(b);
+  });
+
+  function lum(hex){
+    var n=parseInt(hex.slice(1),16), r=n>>16&255, g=n>>8&255, b=n&255;
+    return (0.299*r+0.587*g+0.114*b)/255;
+  }
+  function esc(s){ return String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n'); }
+
+  function vcard(){
+    var name=$('name').value.trim()||'Your name';
+    var L=['BEGIN:VCARD','VERSION:3.0','FN:'+esc(name),'N:'+esc(name)+';;;;'];
+    if($('biz').value.trim()) L.push('ORG:'+esc($('biz').value.trim()));
+    if($('qual').value.trim()) L.push('TITLE:'+esc($('qual').value.trim()));
+    if($('phone').value.trim()) L.push('TEL;TYPE=WORK,VOICE:'+esc($('phone').value.trim()));
+    if($('email').value.trim()) L.push('EMAIL:'+esc($('email').value.trim()));
+    if($('addr').value.trim()) L.push('ADR;TYPE=WORK:;;'+esc($('addr').value.trim().replace(/\s*\n\s*/g,', '))+';;;;');
+    if($('exp').value.trim()) L.push('NOTE:'+esc('Experience: '+$('exp').value.trim()));
+    L.push('END:VCARD');
+    return L.join('\n');
+  }
+
+  function drawQR(canvas, text){
+    var qr = qrcode(0,'M');
+    // Convert to UTF-8 bytes so non-English characters survive
+    qr.addData(unescape(encodeURIComponent(text)));
+    qr.make();
+    var n=qr.getModuleCount(), q=2, cell=8, size=(n+q*2)*cell;
+    canvas.width=size; canvas.height=size;
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,size,size);
+    ctx.fillStyle='#000';
+    for(var r=0;r<n;r++) for(var c=0;c<n;c++)
+      if(qr.isDark(r,c)) ctx.fillRect((c+q)*cell,(r+q)*cell,cell,cell);
+  }
+
+  function setRow(wrap, span, val){
+    $(wrap).style.display = val ? '' : 'none';
+    $(span).textContent = val;
+  }
+
+  function update(){
+    var mode=$('bgMode').value, c1=$('c1').value, c2=$('c2').value;
+    $('c2Wrap').classList.toggle('hidden', mode!=='gradient');
+    $('colorRow').classList.toggle('hidden', mode==='image');
+    $('imgRow').classList.toggle('hidden', mode!=='image');
+
+    var bg=$('cBg'), shade=$('cShade');
+    shade.style.background='transparent';
+    if(mode==='solid'){ bg.style.background=c1; }
+    else if(mode==='gradient'){ bg.style.background='linear-gradient(135deg,'+c1+','+c2+')'; }
+    else {
+      bg.style.background = imgData ? 'url('+imgData+') center/cover no-repeat' : '#2b2f3a';
+      shade.style.background='rgba(0,0,0,'+($('shade').value/100)+')';
+    }
+
+    var t=$('tc').value, light;
+    if(t==='auto'){
+      light = mode==='image' ? true : (mode==='solid' ? lum(c1)<0.6 : (lum(c1)+lum(c2))/2<0.6);
+    } else light = t==='light';
+    $('card').style.setProperty('--tc', light?'#ffffff':'#1b2438');
+
+    $('cName').textContent = $('name').value.trim()||'Your name';
+    $('cQual').textContent = $('qual').value.trim();
+    $('cBiz').textContent = $('biz').value.trim();
+    $('cQual').style.display = $('qual').value.trim()?'':'none';
+    $('cBiz').style.display = $('biz').value.trim()?'':'none';
+    setRow('cExpWrap','cExp',$('exp').value.trim());
+    setRow('cAddrWrap','cAddr',$('addr').value.trim());
+    setRow('cPhoneWrap','cPhone',$('phone').value.trim());
+    setRow('cEmailWrap','cEmail',$('email').value.trim());
+
+    try{ drawQR($('qr'), vcard()); $('qrWarn').textContent=''; }
+    catch(e){ $('qrWarn').textContent='Too much text for one QR code. Shorten the address or experience.'; }
+  }
+
+  ['name','biz','qual','exp','addr','phone','email','bgMode','c1','c2','tc','shade'].forEach(function(id){
+    $(id).addEventListener('input',update); $(id).addEventListener('change',update);
+  });
+  var photoData = null;
+  function showPhoto(){
+    var p=$('cPhoto');
+    p.classList.toggle('hidden', !photoData);
+    p.style.backgroundImage = photoData ? 'url('+photoData+')' : 'none';
+    $('photoRemove').classList.toggle('hidden', !photoData);
+  }
+  $('photo').addEventListener('change',function(e){
+    var f=e.target.files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=function(){
+      // Downscale to keep memory use and export size small
+      var im=new Image();
+      im.onload=function(){
+        var s=Math.min(1,600/Math.max(im.width,im.height)), c=document.createElement('canvas');
+        c.width=Math.round(im.width*s); c.height=Math.round(im.height*s);
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        photoData=c.toDataURL('image/jpeg',0.9); showPhoto();
+      };
+      im.src=r.result;
+    };
+    r.readAsDataURL(f);
+  });
+  $('photoRemove').onclick=function(){ photoData=null; $('photo').value=''; showPhoto(); };
+
+  $('bgImg').addEventListener('change',function(e){
+    var f=e.target.files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=function(){ imgData=r.result; update(); };
+    r.readAsDataURL(f);
+  });
+
+  function save(canvas, filename){
+    var a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png'); a.download=filename; a.click();
+  }
+  function slug(){ return ($('name').value.trim()||'profile').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
+  $('dlQr').onclick=function(){ save($('qr'), slug()+'-qr.png'); };
+  $('dlCard').onclick=function(){
+    var btn=$('dlCard'); btn.disabled=true; btn.textContent='Preparing…';
+    (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(function(){
+      return html2canvas($('card'),{scale:3,useCORS:true,backgroundColor:null});
+    }).then(function(c){ save(c, slug()+'-card.png'); })
+      .catch(function(){ $('qrWarn').textContent='Could not create the card image. Try again.'; })
+      .then(function(){ btn.disabled=false; btn.textContent='Download card (PNG)'; });
+  };
+
+  update();
+})();
+</script>
+</body>
+</html>
